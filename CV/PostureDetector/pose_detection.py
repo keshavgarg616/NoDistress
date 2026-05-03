@@ -298,6 +298,12 @@ class PostureRiskDetector:
             raise ValueError(f"Unable to read image at path: {image_path}")
         return self.analyze_image(image)
 
+def get_posture_stats(image_path: str) -> Dict:
+    detector = PostureRiskDetector()
+    try:
+        return detector.analyze_image_path(image_path)
+    finally:
+        detector.close()
 
 if __name__ == "__main__":
     import argparse

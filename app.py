@@ -1,8 +1,10 @@
 import base64
+import os
 import tempfile
 
 from flask import Flask, jsonify, request
 from CV.ExpressionDetector.emotion_detection import get_emotion_distress_score
+from CV.PostureDetector.pose_detection import get_posture_stats
 
 app = Flask(__name__)
 
@@ -33,24 +35,25 @@ def analyze():
     image_bytes = request.data
 
 
-    # save raw bytes to temp file
+    #
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
     temp_file.write(request.data)
     temp_file.close()
 
     try:
         emotion_result = get_emotion_distress_score(temp_file.name)
+        posture_result = get_posture_stats(temp_file.name)
 
         latest_result = {
             "image": base64.b64encode(image_bytes).decode("utf-8"),
             "emotion": emotion_result,
-            "posture": None  # placeholder for now
+            "posture": posture_result
         }
 
         return jsonify(latest_result)
 
     finally:
-        pass
+        os.unlink(temp_file.name)
 
 
 if __name__ == "__main__":
@@ -62,3 +65,8 @@ POST route that takes in image data from the robot.
 - Will return scores in this route and also hold the most recent values in memory.
 
 GET route will return the most recent image and posture, emotion score of most recent image.'''
+
+'''
+Currently saving the files to disk to run emotion and posture result.
+- May not be sustainable for heavier loads, should consider migrating to memory.
+'''

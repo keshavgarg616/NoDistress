@@ -9,20 +9,36 @@ from CV.PostureDetector.pose_detection import get_posture_stats
 app = Flask(__name__)
 
 #Holding latest result in memory for get requests to frontend
-
 latest_result = {
     "image": None,      # base64 encoded image
     "emotion": None,
     "posture": None
 }
 
-@app.route("/", methods=["GET"])
+@app.route("/status", methods=["GET"])
 def status():
     return {
         "status": "ok",
         "service": "NoDistress API",
         "message": "Server is running"
     }, 200
+
+@app.route("/latest", methods=["GET"])
+def get_latest():
+    global latest_result
+
+    if latest_result["image"] is None:
+        return jsonify({
+            "status": "no_data",
+            "message": "No image has been processed yet"
+        }), 200
+
+    return jsonify({
+        "status": "ok",
+        "image": latest_result["image"],  # base64 string
+        "emotion": latest_result["emotion"],
+        "posture": latest_result["posture"]
+    }), 200
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -35,7 +51,6 @@ def analyze():
     image_bytes = request.data
 
 
-    #
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
     temp_file.write(request.data)
     temp_file.close()

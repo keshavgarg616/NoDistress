@@ -265,12 +265,11 @@ class PostureRiskDetector:
                     "posture_score": 0.0,
                     "is_high_risk": False,
                     "features": None,
+                    "center_position": None
                 }
-
             landmarks = result.pose_landmarks.landmark
-            return self.analyze_landmarks(landmarks)
-
-        if self._backend == "tasks":
+            
+        elif self._backend == "tasks":
             rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             result = self._landmarker.detect(mp_image)
@@ -280,10 +279,37 @@ class PostureRiskDetector:
                     "posture_score": 0.0,
                     "is_high_risk": False,
                     "features": None,
+                    "center_position": None
                 }
-
             landmarks = self._tasks_landmarks_to_points(result.pose_landmarks[0])
-            return self.analyze_landmarks(landmarks)
+            
+        else:
+            raise RuntimeError("Pose detector backend is not initialized.")
+
+        # Always try to extract the nose coordinates for basic centering tracking
+        center_position = None
+        try:
+            nose, v = self._landmark_to_xy(landmarks, self.NOSE)
+            if v > 0.1:
+                center_position = {"x": float(nose[0]), "y": float(nose[1])}
+        except Exception:
+            pass
+
+        # Try to extract the full posture metrics
+        try:
+            result_dict = self.analyze_landmarks(landmarks)
+            result_dict["center_position"] = center_position
+            return result_dict
+        except ValueError as e:
+            # Full body not visible, but we can still return the tracking center
+            return {
+                "posture_label": "Body not visible",
+                "posture_score": 0.0,
+                "is_high_risk": False,
+                "features": None,
+                "center_position": center_position,
+                "error": str(e)
+            }
 
         raise RuntimeError(
             "Pose detector backend is not initialized. "

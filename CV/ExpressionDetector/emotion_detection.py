@@ -34,6 +34,8 @@ def get_emotion_distress_score(image_path: str) -> dict:
             enforce_detection=False  # Don't crash if face isn't perfectly detected
         )
         emotions = result[0]["emotion"]
+        region = result[0].get("region", {})
+        face_width = region.get("w", 0)
 
     except FileNotFoundError:
         return _error_result(f"Image not found: {image_path}")
@@ -67,6 +69,7 @@ def get_emotion_distress_score(image_path: str) -> dict:
         "label": label,
         "dominant_emotion": dominant_emotion,
         "emotions": emotions,
+        "face_width": face_width,
         "error": None
     }
 
@@ -78,6 +81,7 @@ def _error_result(message: str) -> dict:
         "label": "error",
         "dominant_emotion": None,
         "emotions": {},
+        "face_width": 0,
         "error": message
     }
 
